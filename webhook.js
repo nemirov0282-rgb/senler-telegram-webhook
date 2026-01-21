@@ -4,16 +4,16 @@ const fetch = require("node-fetch");
 const app = express();
 app.use(express.json());
 
+// 🔹 Вставьте сюда свои данные
+const BOT_TOKEN = "8263609736:AAFU6SpOS5v51FO-JOSUr6oaFD6pLQQ0Cwk";   // токен Telegram-бота
+const CHAT_ID = "8263609736";         // ID чата или канала
+
 app.post("/", async (req, res) => {
   try {
     const body = req.body;
 
-    // Парсим данные заявки от Senler
+    // Парсим данные заявки
     const integrationPublic = JSON.parse(body.integration_public || "{}");
-
-    // Берём токен и chat_id из переменных окружения Render
-    const BOT_TOKEN = process.env.BOT_TOKEN;
-    const CHAT_ID = process.env.CHAT_ID;
 
     const text = `
 🔔 Новое событие в Senler
@@ -22,6 +22,7 @@ app.post("/", async (req, res) => {
 Телефон: ${integrationPublic.phone || "-"}
     `;
 
+    // Отправка сообщения в Telegram
     await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
