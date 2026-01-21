@@ -8,11 +8,12 @@ app.post("/", async (req, res) => {
   try {
     const body = req.body;
 
+    // Парсим данные заявки от Senler
     const integrationPublic = JSON.parse(body.integration_public || "{}");
-    const integrationPrivate = JSON.parse(body.integration_private || "{}");
 
-    const BOT_TOKEN = integrationPrivate.bot_token;
-    const CHAT_ID = integrationPrivate.chat_id;
+    // Берём токен и chat_id из переменных окружения Render
+    const BOT_TOKEN = process.env.BOT_TOKEN;
+    const CHAT_ID = process.env.CHAT_ID;
 
     const text = `
 🔔 Новое событие в Senler
@@ -37,4 +38,6 @@ app.post("/", async (req, res) => {
   }
 });
 
-app.listen(process.env.PORT || 3000);
+app.listen(process.env.PORT || 3000, () => {
+  console.log("Server running on port", process.env.PORT || 3000);
+});
