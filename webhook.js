@@ -6,7 +6,7 @@ app.use(express.json());
 
 // 🔹 Вставьте сюда свои данные
 const BOT_TOKEN = "8263609736:AAFU6SpOS5v51FO-JOSUr6oaFD6pLQQ0Cwk";   // токен Telegram-бота
-const CHAT_ID = "8263609736";         // ID чата или канала
+const CHAT_ID = "1062930781";         // ID чата или канала
 
 app.post("/", async (req, res) => {
   try {
