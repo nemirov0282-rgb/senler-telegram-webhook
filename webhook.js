@@ -1,46 +1,43 @@
-var request = require('request');
+const express = require('express');
+const request = require('request');
 
-// 🔐 ТВОИ ДАННЫЕ
+const app = express();
+app.use(express.json());
+
+// 🔐 данные бота
 const BOT_TOKEN = '8263609736:AAFU6SpOS5v51FO-JOSUr6oaFD6pLQQ0Cwk';
 const CHAT_ID = '130101004';
 
-module.exports.handler = async function (event, context) {
+app.post('/', async (req, res) => {
 
-    console.log(event.body);
-
-    let responce = {};
+    console.log(req.body);
 
     try {
-        let body = JSON.parse(event.body);
-        console.log('BODY=', body);
-
+        let body = req.body;
         let integration_public = body.integration_public;
 
-        // 🔁 Оставляем всю оригинальную логику replace
-        try {
-            if ('lead_var' in body) {
-                integration_public = integration_public.replace(
-                    /\{%([A-Za-z0-9_]+)%\}/g,
-                    (whole, part1) => body.lead_var[part1] || ''
-                );
-            }
-
-            if ('global_var' in body) {
-                integration_public = integration_public.replace(
-                    /\[%([A-Za-z0-9_]+)%\]/g,
-                    (whole, part1) => body.global_var[part1] || ''
-                );
-            }
-
+        // 🔁 ВАША ОРИГИНАЛЬНАЯ ЛОГИКА
+        if (body.lead_var) {
             integration_public = integration_public.replace(
-                /%([A-Za-z0-9_]+)%/g,
-                (whole, part1) => body.lead?.[part1] || ''
+                /\{%([A-Za-z0-9_]+)%\}/g,
+                (_, k) => body.lead_var[k] || ''
             );
-        } catch (e) {
-            console.log('ERR=', e);
         }
 
-        // 📩 Отправка сообщения
+        if (body.global_var) {
+            integration_public = integration_public.replace(
+                /\[%([A-Za-z0-9_]+)%\]/g,
+                (_, k) => body.global_var[k] || ''
+            );
+        }
+
+        if (body.lead) {
+            integration_public = integration_public.replace(
+                /%([A-Za-z0-9_]+)%/g,
+                (_, k) => body.lead[k] || ''
+            );
+        }
+
         request.post(
             `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
             {
@@ -49,23 +46,17 @@ module.exports.handler = async function (event, context) {
                     text: integration_public,
                     parse_mode: 'HTML'
                 }
-            },
-            function (error, response, body) {
-                if (!error && response.statusCode === 200) {
-                    console.log('Telegram OK:', body);
-                } else {
-                    console.log('Telegram ERROR:', error, body);
-                }
             }
         );
 
-    } catch (e) {
-        console.log(e);
-        responce = { err: JSON.stringify(e) };
-    }
+        res.send('OK');
 
-    return {
-        statusCode: 200,
-        body: JSON.stringify(responce)
-    };
-};
+    } catch (e) {
+        console.error(e);
+        res.status(500).send('ERROR');
+    }
+});
+
+app.listen(process.env.PORT || 3000, () => {
+    console.log('Server started');
+});
