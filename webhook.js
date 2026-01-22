@@ -8,7 +8,7 @@ app.use(express.urlencoded({ extended: true }));
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CHAT_ID = process.env.CHAT_ID;
 
-// Рекурсивная функция для поиска поля по имени в любом уровне вложенности
+// Функция рекурсивного поиска поля в объекте
 function findField(obj, fieldName) {
   if (!obj || typeof obj !== "object") return null;
 
@@ -25,7 +25,7 @@ function findField(obj, fieldName) {
   return null;
 }
 
-// Формируем текст всех полей, кроме name и phone
+// Формирование дополнительных полей, кроме name и phone
 function formatExtraFields(obj, skipFields = ["name", "phone"]) {
   if (!obj || typeof obj !== "object") return "";
 
@@ -47,25 +47,40 @@ function formatExtraFields(obj, skipFields = ["name", "phone"]) {
 
 app.post("/", async (req, res) => {
   try {
-    // Логируем входящие данные для отладки
+    // Логируем данные для отладки (можно убрать позже)
     console.log("=== Новый запрос от Senler ===");
     console.log(JSON.stringify(req.body, null, 2));
 
     const body = req.body;
 
-    // Находим имя и телефон в любом месте
-    const name = findField(body, "name") || "-";
-    const phone = findField(body, "phone") || "-";
+    // Если integration_public — это строка JSON, парсим её
+    let integrationData = {};
+    if (body.integration_public) {
+      if (typeof body.integration_public === "string") {
+        try {
+          integrationData = JSON.parse(body.integration_public);
+        } catch (e) {
+          console.warn("Не удалось распарсить integration_public:", e);
+          integrationData = {};
+        }
+      } else {
+        integrationData = body.integration_public;
+      }
+    }
+
+    // Ищем имя и телефон рекурсивно в integrationData или в body
+    const name = findField(integrationData, "name") || findField(body, "name") || "-";
+    const phone = findField(integrationData, "phone") || findField(body, "phone") || "-";
 
     // Формируем дополнительные поля
-    const extraFields = formatExtraFields(body);
+    const extraFields = formatExtraFields(integrationData) || formatExtraFields(body);
 
     const text = `🔔 Новое бронирование // Senler
 Имя: ${name}
 Телефон: ${phone}
 ${extraFields ? "\n" + extraFields : ""}`;
 
-    // Отправка в Telegram
+    // Отправка сообщения в Telegram
     const tgRes = await fetch(
       `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
       {
