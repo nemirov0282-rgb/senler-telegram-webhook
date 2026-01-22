@@ -4,15 +4,15 @@ const fetch = require("node-fetch");
 const app = express();
 app.use(express.json());
 
+// 🔐 ДАННЫЕ БОТА
+const BOT_TOKEN = "8263609736:AAFU6SpOS5v51FO-JOSUr6oaFD6pLQQ0Cwk";
+const CHAT_ID = "130101004";
+
 app.post("/", async (req, res) => {
   try {
     const body = req.body;
 
     const integrationPublic = JSON.parse(body.integration_public || "{}");
-    const integrationPrivate = JSON.parse(body.integration_private || "{}");
-
-    const BOT_TOKEN = integrationPrivate.bot_token;
-    const CHAT_ID = integrationPrivate.chat_id;
 
     const text = `
 🔔 Новое событие в Senler
@@ -37,4 +37,6 @@ app.post("/", async (req, res) => {
   }
 });
 
-app.listen(process.env.PORT || 3000);
+app.listen(process.env.PORT || 3000, () => {
+  console.log("Server started");
+});
