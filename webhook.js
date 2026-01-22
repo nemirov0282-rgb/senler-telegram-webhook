@@ -1,62 +1,40 @@
-const express = require('express');
-const request = require('request');
+const express = require("express");
+const fetch = require("node-fetch");
 
 const app = express();
 app.use(express.json());
 
-// 🔐 данные бота
-const BOT_TOKEN = '8263609736:AAFU6SpOS5v51FO-JOSUr6oaFD6pLQQ0Cwk';
-const CHAT_ID = '130101004';
+app.post("/", async (req, res) => {
+  try {
+    const body = req.body;
 
-app.post('/', async (req, res) => {
+    const integrationPublic = JSON.parse(body.integration_public || "{}");
+    const integrationPrivate = JSON.parse(body.integration_private || "{}");
 
-    console.log(req.body);
+    const BOT_TOKEN = integrationPrivate.bot_token;
+    const CHAT_ID = integrationPrivate.chat_id;
 
-    try {
-        let body = req.body;
-        let integration_public = body.integration_public;
+    const text = `
+🔔 Новое событие в Senler
+Тип: ${body.event || "неизвестно"}
+Имя: ${integrationPublic.name || "-"}
+Телефон: ${integrationPublic.phone || "-"}
+    `;
 
-        // 🔁 ВАША ОРИГИНАЛЬНАЯ ЛОГИКА
-        if (body.lead_var) {
-            integration_public = integration_public.replace(
-                /\{%([A-Za-z0-9_]+)%\}/g,
-                (_, k) => body.lead_var[k] || ''
-            );
-        }
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: CHAT_ID,
+        text: text,
+      }),
+    });
 
-        if (body.global_var) {
-            integration_public = integration_public.replace(
-                /\[%([A-Za-z0-9_]+)%\]/g,
-                (_, k) => body.global_var[k] || ''
-            );
-        }
-
-        if (body.lead) {
-            integration_public = integration_public.replace(
-                /%([A-Za-z0-9_]+)%/g,
-                (_, k) => body.lead[k] || ''
-            );
-        }
-
-        request.post(
-            `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
-            {
-                json: {
-                    chat_id: CHAT_ID,
-                    text: integration_public,
-                    parse_mode: 'HTML'
-                }
-            }
-        );
-
-        res.send('OK');
-
-    } catch (e) {
-        console.error(e);
-        res.status(500).send('ERROR');
-    }
+    res.send("OK");
+  } catch (e) {
+    console.error(e);
+    res.status(500).send("Error");
+  }
 });
 
-app.listen(process.env.PORT || 3000, () => {
-    console.log('Server started');
-});
+app.listen(process.env.PORT || 3000);
