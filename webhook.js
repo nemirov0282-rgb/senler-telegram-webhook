@@ -8,36 +8,57 @@ app.use(express.urlencoded({ extended: true }));
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CHAT_ID = process.env.CHAT_ID;
 
+// Рекурсивная функция для поиска поля по имени в любом уровне вложенности
+function findField(obj, fieldName) {
+  if (!obj || typeof obj !== "object") return null;
+
+  if (obj.hasOwnProperty(fieldName)) return obj[fieldName];
+
+  for (const key of Object.keys(obj)) {
+    const value = obj[key];
+    if (typeof value === "object") {
+      const result = findField(value, fieldName);
+      if (result !== null) return result;
+    }
+  }
+
+  return null;
+}
+
+// Формируем текст всех полей, кроме name и phone
+function formatExtraFields(obj, skipFields = ["name", "phone"]) {
+  if (!obj || typeof obj !== "object") return "";
+
+  const lines = [];
+
+  for (const [key, value] of Object.entries(obj)) {
+    if (skipFields.includes(key)) continue;
+
+    if (typeof value === "object") {
+      const nested = formatExtraFields(value, skipFields);
+      if (nested) lines.push(nested);
+    } else {
+      lines.push(`${key.charAt(0).toUpperCase() + key.slice(1)}: ${value || "-"}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
 app.post("/", async (req, res) => {
   try {
+    // Логируем входящие данные для отладки
+    console.log("=== Новый запрос от Senler ===");
+    console.log(JSON.stringify(req.body, null, 2));
+
     const body = req.body;
 
-    // Берем integration_public
-    let integrationData = {};
-    if (body.integration_public) {
-      if (typeof body.integration_public === "string") {
-        try {
-          integrationData = JSON.parse(body.integration_public);
-        } catch (e) {
-          console.warn("Не удалось распарсить integration_public:", e);
-          integrationData = {};
-        }
-      } else {
-        integrationData = body.integration_public;
-      }
-    }
+    // Находим имя и телефон в любом месте
+    const name = findField(body, "name") || "-";
+    const phone = findField(body, "phone") || "-";
 
-    // Если внутри есть subscriber, вытаскиваем его
-    const subscriber = integrationData.subscriber || {};
-
-    const name = subscriber.name || "-";
-    const phone = subscriber.phone || "-";
-
-    // Остальные поля (если нужны)
-    const extraFields = Object.entries(integrationData)
-      .filter(([key]) => key !== "subscriber")
-      .map(([key, value]) => `${key.charAt(0).toUpperCase() + key.slice(1)}: ${value || "-"}`)
-      .join("\n");
+    // Формируем дополнительные поля
+    const extraFields = formatExtraFields(body);
 
     const text = `🔔 Новое бронирование // Senler
 Имя: ${name}
