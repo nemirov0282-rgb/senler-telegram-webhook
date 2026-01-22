@@ -1,44 +1,105 @@
-const express = require("express");
-const fetch = require("node-fetch");
+var request = require('request');
+module.exports.handler = async function (event, context) {
+    //event.body
+    console.log(event.body)
 
-const app = express();
-app.use(express.json());
+    let responce = {};
+    try {
 
-// 🔹 Вставьте сюда свои данные
-const BOT_TOKEN = "8263609736:AAFU6SpOS5v51FO-JOSUr6oaFD6pLQQ0Cwk";   // токен Telegram-бота
-const CHAT_ID = "1062930781";         // ID чата или канала
+        let body = JSON.parse(event.body);
+        console.log('BODY=',body);
 
-app.post("/", async (req, res) => {
-  try {
-    const body = req.body;
 
-    // Парсим данные заявки
-    const integrationPublic = JSON.parse(body.integration_public || "{}");
+        let integration_public = JSON.parse(body.integration_public);
+        let integration_private = JSON.parse(body.integration_private);
 
-    const text = `
-🔔 Новое событие в Senler
-Тип: ${body.event || "неизвестно"}
-Имя: ${integrationPublic.name || "-"}
-Телефон: ${integrationPublic.phone || "-"}
-    `;
 
-    // Отправка сообщения в Telegram
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: CHAT_ID,
-        text: text,
-      }),
-    });
+        if(Object.prototype.toString.call(integration_private) === '[object Array]') {
 
-    res.send("OK");
-  } catch (e) {
-    console.error(e);
-    res.status(500).send("Error");
-  }
-});
+            for(let item_user of integration_private){
+                console.log('item_user=',item_user);
+                let token = item_user.token;
+                let chatId = item_user.chat_id;
 
-app.listen(process.env.PORT || 3000, () => {
-  console.log("Server running on port", process.env.PORT || 3000);
-});
+                try{
+                    if ('lead_var' in body){
+                        integration_public = integration_public.replace(
+                            new RegExp('\{%([A-Za-z0-9_]+)%\}', "g"),
+                            (whole, part1) => {
+                                if (body.lead_var.hasOwnProperty(part1)) {
+                                    return body.lead_var[part1];
+                                } else {
+                                    return '';
+                                }
+                            }
+                        )
+                    }
+                    if ('global_var' in body){
+                        integration_public = integration_public.replace(
+                            new RegExp('\\[%([A-Za-z0-9_]+)%\\]', "g"),
+                            (whole, part1) => {
+                                if (body.global_var.hasOwnProperty(part1)) {
+                                    return body.global_var[part1];
+                                } else {
+                                    return '';
+                                }
+                            }
+                        )
+                    }
+
+                    integration_public = integration_public.replace(
+                        new RegExp('%([A-Za-z0-9_]+)%', "g"),
+                        (whole, part1) => {
+                            if (body.lead.hasOwnProperty(part1)) {
+                                return body.lead[part1];
+                            } else {
+                                return '';
+                            }
+                        }
+                    )
+                }
+                catch(e){
+                    console.log('ERR=',e);
+                }
+
+
+
+                let data = {
+                    method: 'post',
+                    payload: {
+                        method: 'sendMessage',
+                        chat_id: String(chatId),
+                        text: integration_public,
+                        parse_mode: 'HTML',
+                        reply_markup: JSON.stringify(null)
+                    }
+                }
+
+                //textarea.replaceArray(find, replace);
+                console.log( 'https://api.telegram.org/bot'1062930781:AAFU6SpOS5v51FO-JOSUr6oaFD6pLQQ0Cwk'/sendMessage?text='+integration_public+'&chat_id='+chatId);
+                console.log(data);
+                request.post(
+                    'https://api.telegram.org/bot' + token + '/sendMessage?text='+encodeURIComponent(integration_public)+'&chat_id='+chatId,
+                    { json:data },
+                    function (error, response, body) {
+                        if (!error && response.statusCode == 200) {
+                            console.log(body);
+                        }
+                        console.log(error, body);
+                    }
+                );
+
+            }
+
+        }
+
+
+    } catch (e) {
+        console.log(e);
+        responce = {err:JSON.stringify(e)}
+    }
+    return {
+        statusCode: 200,
+        body: JSON.stringify(responce)
+    };
+};
