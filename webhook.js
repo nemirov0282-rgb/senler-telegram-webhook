@@ -19,8 +19,7 @@ app.post("/", async (req, res) => {
         : body.integration_public || {};
 
     const text = `
-🔔 Новое событие в Senler
-Тип: ${body.event || "неизвестно"}
+🔔 Новое бронирование // ВК
 Имя: ${integrationPublic.name || "-"}
 Телефон: ${integrationPublic.phone || "-"}
     `;
