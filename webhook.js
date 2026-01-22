@@ -4,14 +4,15 @@ const fetch = require("node-fetch");
 const app = express();
 app.use(express.json());
 
-// 🔐 ДАННЫЕ БОТА
-const BOT_TOKEN = "8263609736:AAFU6SpOS5v51FO-JOSUr6oaFD6pLQQ0Cwk";
-const CHAT_ID = "130101004";
+// 🔹 Вставьте сюда свои данные
+const BOT_TOKEN = "8263609736:AAFU6SpOS5v51FO-JOSUr6oaFD6pLQQ0Cwk";   // токен Telegram-бота
+const CHAT_ID = "130101004";         // ID чата или канала
 
 app.post("/", async (req, res) => {
   try {
     const body = req.body;
 
+    // Парсим данные заявки
     const integrationPublic = JSON.parse(body.integration_public || "{}");
 
     const text = `
@@ -21,6 +22,7 @@ app.post("/", async (req, res) => {
 Телефон: ${integrationPublic.phone || "-"}
     `;
 
+    // Отправка сообщения в Telegram
     await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -38,5 +40,5 @@ app.post("/", async (req, res) => {
 });
 
 app.listen(process.env.PORT || 3000, () => {
-  console.log("Server started");
+  console.log("Server running on port", process.env.PORT || 3000);
 });
