@@ -12,7 +12,7 @@ app.post("/", async (req, res) => {
   try {
     const body = req.body;
 
-    // Получаем данные из Senler
+    // Берем integration_public
     let integrationData = {};
     if (body.integration_public) {
       if (typeof body.integration_public === "string") {
@@ -27,13 +27,15 @@ app.post("/", async (req, res) => {
       }
     }
 
-    // Формируем текст для Telegram
-    const name = integrationData.name || "-";
-    const phone = integrationData.phone || "-";
+    // Если внутри есть subscriber, вытаскиваем его
+    const subscriber = integrationData.subscriber || {};
 
-    // Собираем остальные поля, кроме имени и телефона
+    const name = subscriber.name || "-";
+    const phone = subscriber.phone || "-";
+
+    // Остальные поля (если нужны)
     const extraFields = Object.entries(integrationData)
-      .filter(([key]) => key !== "name" && key !== "phone")
+      .filter(([key]) => key !== "subscriber")
       .map(([key, value]) => `${key.charAt(0).toUpperCase() + key.slice(1)}: ${value || "-"}`)
       .join("\n");
 
@@ -42,7 +44,7 @@ app.post("/", async (req, res) => {
 Телефон: ${phone}
 ${extraFields ? "\n" + extraFields : ""}`;
 
-    // Отправка сообщения в Telegram
+    // Отправка в Telegram
     const tgRes = await fetch(
       `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
       {
