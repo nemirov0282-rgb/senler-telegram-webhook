@@ -2,7 +2,6 @@ const express = require("express");
 const fetch = require("node-fetch");
 
 const app = express();
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -13,17 +12,37 @@ app.post("/", async (req, res) => {
   try {
     const body = req.body;
 
-    const integrationPublic =
-      typeof body.integration_public === "string"
-        ? JSON.parse(body.integration_public)
-        : body.integration_public || {};
+    // Получаем данные из Senler
+    let integrationData = {};
+    if (body.integration_public) {
+      if (typeof body.integration_public === "string") {
+        try {
+          integrationData = JSON.parse(body.integration_public);
+        } catch (e) {
+          console.warn("Не удалось распарсить integration_public:", e);
+          integrationData = {};
+        }
+      } else {
+        integrationData = body.integration_public;
+      }
+    }
 
-    const text = `
-🔔 Новое бронирование // ВК
-Имя: ${integrationPublic.name || "-"}
-Телефон: ${integrationPublic.phone || "-"}
-    `;
+    // Формируем текст для Telegram
+    const name = integrationData.name || "-";
+    const phone = integrationData.phone || "-";
 
+    // Собираем остальные поля, кроме имени и телефона
+    const extraFields = Object.entries(integrationData)
+      .filter(([key]) => key !== "name" && key !== "phone")
+      .map(([key, value]) => `${key.charAt(0).toUpperCase() + key.slice(1)}: ${value || "-"}`)
+      .join("\n");
+
+    const text = `🔔 Новое бронирование // Senler
+Имя: ${name}
+Телефон: ${phone}
+${extraFields ? "\n" + extraFields : ""}`;
+
+    // Отправка сообщения в Telegram
     const tgRes = await fetch(
       `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
       {
